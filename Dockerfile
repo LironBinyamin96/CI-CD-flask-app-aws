@@ -1,13 +1,20 @@
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 WORKDIR /app
 
-COPY backend-py/requirements.txt .
+# Create flask-app folder and copy code inside
+RUN mkdir -p /app/flask-app
 
-RUN pip install --no-cache-dir -r requirements.txt
+COPY backend-py /app/flask-app/backend-py
 
-COPY backend-py/ .
+COPY frontend /app/flask-app/frontend
 
-EXPOSE 5000
+# Ensure the script is executable
+RUN chmod +x /app/flask-app/backend-py/start-server.sh
 
-CMD ["python", "server.py"]
+# Install backend requirements
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r /app/flask-app/backend-py/requirements.txt
+
+# Set the default command to run the script
+CMD ["/app/flask-app/backend-py/start-server.sh"]
