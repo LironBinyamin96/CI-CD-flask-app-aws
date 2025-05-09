@@ -68,7 +68,7 @@ resource "aws_ecs_task_definition" "flask_integration_task" {
   memory                   = "4096"
   container_definitions = jsonencode([{
     name      = "flask"
-    image     = var.image_url
+    image     = "314525640319.dkr.ecr.il-central-1.amazonaws.com/liron-repo:14"
 
     essential = true
     portMappings = [{
@@ -79,7 +79,7 @@ resource "aws_ecs_task_definition" "flask_integration_task" {
 }
 
 # Target Group on port 100, forwarding to container port 200
-resource "aws_lb_target_group" "nginx_target_group" {
+resource "aws_lb_target_group" "flask_target_group" {
   name        = "flask-app-liron-tg"
   port        = 5000
   protocol    = "HTTP"
@@ -99,15 +99,15 @@ resource "aws_lb_listener" "flask_listener" {
   protocol          = "HTTP"
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.nginx_target_group.arn
+    target_group_arn = aws_lb_target_group.flask_target_group.arn
   }
 }
 
 # ECS Service that uses the Task Definition and Target Group
-resource "aws_ecs_service" "nginx_service" {
-  name            = "nginx-service-liron"
+resource "aws_ecs_service" "flask_service" {
+  name            = "flask-service-liron"
   cluster         = data.aws_ecs_cluster.existing_cluster.id
-  task_definition = aws_ecs_task_definition.nginx.arn
+  task_definition = aws_ecs_task_definition.flask_integration_task.arn
   desired_count   = 1
   launch_type     = "FARGATE"
   network_configuration {
@@ -115,11 +115,11 @@ resource "aws_ecs_service" "nginx_service" {
     assign_public_ip = true
   }
   load_balancer {
-    target_group_arn = aws_lb_target_group.nginx_target_group.arn
+    target_group_arn = aws_lb_target_group.flask_target_group.arn
     container_name   = "flask"
     container_port   = 5000
   }
   depends_on = [
-    aws_lb_listener.nginx_listener
+    aws_lb_listener.flask_listener
   ]
 }

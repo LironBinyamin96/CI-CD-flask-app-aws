@@ -23,6 +23,7 @@ variable "aws_lb_name" {
 }
 
 variable "image_url" {
+  default = "314525640319.dkr.ecr.il-central-1.amazonaws.com/liron-repo:14"
   type        = string
 }
 
