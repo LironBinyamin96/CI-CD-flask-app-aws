@@ -44,7 +44,7 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy" {
 }
 
 resource "aws_iam_role" "ecs_task_role" {
-  name = "ecsTaskRole-liron"
+  name = "ecsTaskRole-liron-flask"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
