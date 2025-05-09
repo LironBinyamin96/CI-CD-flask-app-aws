@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "il-central-1"
+  region = var.region
 }
 
 # Reference existing VPC, subnets, ECS cluster, and ALB
@@ -16,11 +16,11 @@ data "aws_subnet" "subnet_b" {
 }
 
 data "aws_ecs_cluster" "existing_cluster" {
-  cluster_name = "imtech"
+  cluster_name = var.cluster_name
 }
 
 data "aws_lb" "existing_lb" {
-  name = "imtec"
+  name = var.aws_lb_name
 }
 
 # IAM Roles for ECS Task Execution
@@ -58,8 +58,8 @@ resource "aws_iam_role" "ecs_task_role" {
 }
 
 # ECS Task Definition
-resource "aws_ecs_task_definition" "nginx" {
-  family                   = "nginx-task-liron-tf"
+resource "aws_ecs_task_definition" "flask_integration_task" {
+  family                   = "flask-integration-task-liron-tf"
   execution_role_arn       = aws_iam_role.ecs_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_role.arn
   network_mode             = "awsvpc"
@@ -67,11 +67,12 @@ resource "aws_ecs_task_definition" "nginx" {
   cpu                      = "2048"
   memory                   = "4096"
   container_definitions = jsonencode([{
-    name      = "nginx"
-    image     = "nginx:latest"
+    name      = "flask"
+    image     = var.image_url
+
     essential = true
     portMappings = [{
-      containerPort = 80
+      containerPort = 5000
       protocol      = "tcp"
     }]
   }])
@@ -79,22 +80,22 @@ resource "aws_ecs_task_definition" "nginx" {
 
 # Target Group on port 100, forwarding to container port 200
 resource "aws_lb_target_group" "nginx_target_group" {
-  name        = "nginx-target-group-liron"
-  port        = 80
+  name        = "flask-app-liron-tg"
+  port        = 5000
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.existing_vpc.id
   target_type = "ip"
   health_check {
     protocol = "HTTP"
-    port     = "80"
+    port     = "5000"
     path     = "/"
   }
 }
 
 # Listener on port 100 in the existing ALB
-resource "aws_lb_listener" "nginx_listener" {
+resource "aws_lb_listener" "flask_listener" {
   load_balancer_arn = data.aws_lb.existing_lb.arn
-  port              = 101
+  port              = 5000
   protocol          = "HTTP"
   default_action {
     type             = "forward"
@@ -115,8 +116,8 @@ resource "aws_ecs_service" "nginx_service" {
   }
   load_balancer {
     target_group_arn = aws_lb_target_group.nginx_target_group.arn
-    container_name   = "nginx"
-    container_port   = 80
+    container_name   = "flask"
+    container_port   = 5000
   }
   depends_on = [
     aws_lb_listener.nginx_listener
